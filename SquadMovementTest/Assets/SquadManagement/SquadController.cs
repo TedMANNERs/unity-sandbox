@@ -9,20 +9,28 @@ public class SquadController : MonoBehaviour
 {
     private NavMeshAgent[] _navMeshAgents;
     private Vector3 _destination;
+    private PlayerInputActions _inputActions;
+    [Header("FOR DEBUGGING")]
+    [SerializeField] private GameObject _cube;
 
-    private void Awake()
+    public Vector2 NewLookDirection { get; private set; }
+
+    private void Start()
     {
+        NewLookDirection = transform.forward;
         _navMeshAgents = GetComponentsInChildren<NavMeshAgent>();
+        _inputActions = new PlayerInputActions();
+        _inputActions.ControlSquad.Enable();
+        _inputActions.ControlSquad.LookAround.performed += OnLookAround;
+        _cube.GetComponent<MeshRenderer>().material.color = Color.green;
     }
 
-    // Start is called before the first frame update
-    void Start()
+    private void OnLookAround(InputAction.CallbackContext context)
     {
-        
+        NewLookDirection = context.ReadValue<Vector2>();
     }
 
-    // Update is called once per frame
-    void Update()
+    private void Update()
     {
         if (_destination != transform.position)
         {
@@ -33,30 +41,19 @@ public class SquadController : MonoBehaviour
         }
     }
 
-    private void OnLookAround(InputValue value)
+    private void FixedUpdate()
     {
-        Debug.Log("Looking around");
-    }
-    
-    private void OnMoveForward(InputValue value)
-    {
-        Debug.Log("Move Forward");
-        Vector3 direction = transform.forward;
-        _destination = transform.position + direction;
-    }
-    
-    private void OnMoveLeft(InputValue value)
-    {
-        
-    }
-    
-    private void OnMoveBackward(InputValue value)
-    {
-        
-    }
-    
-    private void OnMoveRight(InputValue value)
-    {
-        
+        Vector2 movement = _inputActions.ControlSquad.Move.ReadValue<Vector2>();
+        var forward = Camera.main.transform.forward;
+        var right = Camera.main.transform.right;
+        forward.y = 0f;
+        right.y = 0f;
+        forward.Normalize();
+        right.Normalize();
+        Debug.Log($"movement= {movement}");
+        var newDestination = forward * movement.y + right * movement.x;
+        Debug.Log($"newDestination= {newDestination}");
+        _destination += newDestination * (3.5f * Time.deltaTime);
+        _cube.transform.position = _destination;
     }
 }
